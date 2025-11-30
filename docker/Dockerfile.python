@@ -1,0 +1,36 @@
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install security updates and required packages
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+    gcc \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install common Python packages
+RUN pip install --no-cache-dir \
+    numpy==1.24.3 \
+    pandas==2.0.3 \
+    requests==2.31.0 \
+    matplotlib==3.7.2 \
+    scipy==1.11.1
+
+# Create non-root user for execution
+RUN useradd -m -u 1000 coderunner && \
+    chown -R coderunner:coderunner /app
+
+# Switch to non-root user
+USER coderunner
+
+# Set resource limits
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Copy and set up execution script
+COPY --chown=coderunner:coderunner docker/execute.py /app/execute.py
+
+# Set execution timeout (30 seconds)
+CMD ["timeout", "30", "python", "/app/execute.py"]
